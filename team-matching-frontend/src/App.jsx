@@ -17,10 +17,12 @@ const App = () => {
 
   const handleLogin = async (email, password) => {
     try {
-      const { data } = await loginUser({ email, password });
-      localStorage.setItem('access_token', data.access);
+      const response = await loginUser({ email, password });
+      const { access } = response.data;
+      localStorage.setItem('access_token', access);
       navigate('/profile');
-    } catch {
+    }
+    catch {
       alert('Ошибка входа');
     }
   };
@@ -34,5 +36,6 @@ const App = () => {
     </Routes>
   );
 };
+
 
 export default App;
