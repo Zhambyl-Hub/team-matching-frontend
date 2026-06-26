@@ -1,6 +1,8 @@
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import AuthForm from './components/AuthForm';
 import { registerUser, loginUser } from './services/api';
+import ProfilePage from './pages/ProfilePage';
+import FeedPage from './pages/FeedPage';
 
 const App = () => {
   const navigate = useNavigate();
@@ -31,11 +33,11 @@ const App = () => {
     <Routes>
       <Route path="/register" element={<AuthForm title="Регистрация" buttonText="Зарегистрироваться" onSubmit={handleRegister} linkText="Уже есть аккаунт?" linkTo="/login"/>}/>
       <Route path="/login" element={<AuthForm title="Вход" buttonText="Войти" onSubmit={handleLogin} linkText="Нет аккаунта?" linkTo="/register" />} /> 
-      <Route path="/profile" element={<h1>Профиль (в разработке)</h1>} />
+      <Route path="/profile" element={<ProfilePage />} />
       <Route path="*" element={<AuthForm title="Регистрация" buttonText="Зарегистрироваться" onSubmit={handleRegister} linkText="Уже есть аккаунт?" linkTo="/login" />} />
+      <Route path="/feed" element={<FeedPage />} />
     </Routes>
   );
 };
-
 
 export default App;

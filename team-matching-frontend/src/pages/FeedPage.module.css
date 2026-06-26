@@ -1,0 +1,38 @@
+.container { 
+  padding: 40px; 
+  font-family: sans-serif; 
+  max-width: 600px; 
+  margin: 0 auto; 
+}
+
+.authForm { 
+  display: flex; 
+  flex-direction: column; 
+  width: 100%; 
+  gap: 10px; 
+  border: 1px solid #e0e0e0;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.authButton { 
+  padding: 10px; 
+  cursor: pointer; 
+  background-color: #52c41a;
+  color: white; 
+  border: none; 
+  border-radius: 4px; 
+  margin-top: 15px; 
+  font-size: 16px;
+}
+
+.logoutButton { 
+  background-color: #ff4d4f;
+  color: white; 
+  border: none; 
+  padding: 10px 16px; 
+  border-radius: 4px; 
+  cursor: pointer; 
+  font-size: 16px;
+}

@@ -1,36 +1,47 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://stipulate-calzone-twice.ngrok-free.dev/api/v1/', 
+  // Базовый URL заканчивается на слэш, без /api/v1/
+  baseURL: 'https://stipulate-calzone-twice.ngrok-free.dev',
 });
 
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-}, (error) => {
-    return Promise.reject(error);
+  const token = localStorage.getItem('access_token'); // Ключ должен точно совпадать с тем, что вы пишите при логине!
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
-//Функции API для авторизации
-// auth/register/ добавится к базовому пути и получится:
-// https://stipulate-calzone-twice.ngrok-free.dev/api/v1/auth/register/
-export const registerUser = (userData) => api.post('auth/register/', userData);
-export const loginUser = (userData) => api.post('auth/login/', userData);
 
-//Функция для справочников
-export const getSkills = () => api.get('skills/');
-export const getInterests = () => api.get(`interests/`);
+// Функции авторизации и регистрации
+export const loginUser = (credentials) => {
+  return api.post('/api/v1/auth/login/', credentials);
+};
 
-//Функции для профиля
-export const getMyProfile = () => api.get('profiles/me');
-export const updateMyProfile = (data) => api.patch('profiles/me/', data);
-export const getRecommendations = () => api.get('profiles/recommendations/');
+export const registerUser = (userData) => {
+  return api.post('/api/v1/auth/register/', userData);
+};
 
+// Остальные функции
+export const getSkills = async () => {
+  try {
+    const response = await api.get('/api/v1/skills', {
+      headers: { 
+        'ngrok-skip-browser-warning': 'true' 
+      }
+    });
+    return response.data; // Возвращаем данные из запроса
+  } catch (error) {
+    console.error("Ошибка при получении навыков:", error);
+    throw error;
+  }
+};
 
-//Функция взаимодействия
-export const sendLike = (data) => api.post('interactions/like', data);
-export const getMatches = () => api.get('interactions/matches/');
+export const getInterests = () => api.get('/api/v1/interests/');
+export const getMyProfile = () => api.get('/api/v1/profiles/me/');
+export const updateMyProfile = (data) => api.patch('/api/v1/profiles/me/', data);
+export const getRecommendations = () => api.get('/api/v1/profiles/recommendations/');
+export const sendLike = (data) => api.post('/api/v1/interactions/like/', data);
+export const getMatches = () => api.get('/api/v1/interactions/matches/');
 
 export default api;
