@@ -1,15 +1,18 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // Базовый URL заканчивается на слэш, без /api/v1/
   baseURL: 'https://stipulate-calzone-twice.ngrok-free.dev',
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token'); // Ключ должен точно совпадать с тем, что вы пишите при логине!
+  const token = localStorage.getItem('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  // Добавляем заголовок ngrok глобально для всех запросов
+  config.headers['ngrok-skip-browser-warning'] = 'true';
+  
   return config;
 });
 
@@ -23,25 +26,32 @@ export const registerUser = (userData) => {
 };
 
 // Остальные функции
-export const getSkills = async () => {
-  try {
-    const response = await api.get('/api/v1/skills', {
-      headers: { 
-        'ngrok-skip-browser-warning': 'true' 
-      }
-    });
-    return response.data; // Возвращаем данные из запроса
-  } catch (error) {
-    console.error("Ошибка при получении навыков:", error);
-    throw error;
-  }
+export const getSkills = () => {
+  return api.get('/api/v1/skills/');
 };
 
-export const getInterests = () => api.get('/api/v1/interests/');
-export const getMyProfile = () => api.get('/api/v1/profiles/me/');
-export const updateMyProfile = (data) => api.patch('/api/v1/profiles/me/', data);
-export const getRecommendations = () => api.get('/api/v1/profiles/recommendations/');
-export const sendLike = (data) => api.post('/api/v1/interactions/like/', data);
-export const getMatches = () => api.get('/api/v1/interactions/matches/');
+export const getInterests = () => {
+  return api.get('/api/v1/interests/');
+};
+
+export const getMyProfile = () => {
+  return api.get('/api/v1/profiles/me/');
+};
+
+export const updateMyProfile = (data) => {
+  return api.patch('/api/v1/profiles/me/', data);
+};
+
+export const getRecommendations = () => {
+  return api.get('/api/v1/profiles/recommendations/');
+};
+
+export const sendLike = (data) => {
+  return api.post('/api/v1/interactions/like/', data);
+};
+
+export const getMatches = () => {
+  return api.get('/api/v1/interactions/matches/');
+};
 
 export default api;

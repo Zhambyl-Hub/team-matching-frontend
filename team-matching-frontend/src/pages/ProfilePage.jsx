@@ -1,61 +1,76 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api, { getInterests, getMyProfile, getSkills, updateMyProfile } from '../services/api';
+import api, { getMyProfile, updateMyProfile } from '../services/api';
 import styles from "../components/AuthForm.module.css";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
 
+  // Состояние профиля строго под поля эндпоинта /profiles/me/ (как в документации)
   const [profile, setProfile] = useState({
     telegram_username: '',
     project_stage: '',
     employment: '',
     location: '',
-    skills: '',            // Теперь это строка, куда пользователь сам вписывает навыки
-    interests: '',         // Теперь это строка для интересов
-    want_to_learn: ''      // Навыки для изучения
+    bio: '',
+    portfolio_url: '',
+    github_url: '',
+    skills_have: [], 
+    skills_want: [], 
+    interests: []    
   });
 
+  // Списки из базы данных для отображения в селектах
+  const [skillsList, setSkillsList] = useState([]);
+  const [interestsList, setInterestsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-   const skillsFetch = async ()=>{
-    const res = await api.get("/api/v1/skills",{
-        withCredentials:false,
-        headers: { 'ngrok-skip-browser-warning': 'true' }
-    })
-    console.log(res)
-   }
-   skillsFetch()
     const token = localStorage.getItem('access_token');
     if (!token) {
       navigate('/login');
       return;
     }
 
-    const fetchProfile = async () => {
+    const fetchAllData = async () => {
       try {
-        const response = await getMyProfile();
-        if (response.data) {
+        // Тот самый запрос навыков /api/v1/skills/ и интересов,
+        // заголовки ngrok и токен уже прикрепляются через интерцепторы в api.js
+        const [profileRes, skillsRes, interestsRes] = await Promise.all([
+          getMyProfile(),
+          api.get('/api/v1/skills/'),
+          api.get('/api/v1/interests/')
+        ]);
+
+        if (profileRes.data) {
           setProfile({
-            telegram_username: response.data.telegram_username || '',
-            project_stage: response.data.project_stage || '',
-            employment: response.data.employment || '',
-            location: response.data.location || '',
-            // Если бэкенд возвращает массивы или списки, преобразуем их обратно в удобную для ввода строку
-            skills: Array.isArray(response.data.skills) ? response.data.skills.join(', ') : response.data.skills || '',
-            interests: Array.isArray(response.data.interests) ? response.data.interests.join(', ') : response.data.interests || '',
-            want_to_learn: Array.isArray(response.data.want_to_learn) ? response.data.want_to_learn.join(', ') : response.data.want_to_learn || ''
+            telegram_username: profileRes.data.telegram_username || '',
+            project_stage: profileRes.data.stage || '', // 'stage' поле из документации
+            employment: profileRes.data.commitment || '', // 'commitment' поле из документации
+            location: profileRes.data.location || '',
+            bio: profileRes.data.bio || '',
+            portfolio_url: profileRes.data.portfolio_url || '',
+            github_url: profileRes.data.github_url || '',
+            skills_have: profileRes.data.skills_have || [],
+            skills_want: profileRes.data.skills_want || [],
+            interests: profileRes.data.interests || []
           });
         }
+
+        setSkillsList(skillsRes.data || []);
+        setInterestsList(interestsRes.data || []);
+
       } catch (err) {
-        console.error('Ошибка загрузки профиля:', err);
+        console.error('Ошибка загрузки данных:', err);
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          navigate('/login');
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
+    fetchAllData();
   }, [navigate]);
 
   const handleChange = (e) => {
@@ -63,21 +78,38 @@ const ProfilePage = () => {
     setProfile(prev => ({ ...prev, [name]: value }));
   };
 
+  // Обработчик для множественного выбора (select multiple)
+  const handleSelectChange = (e) => {
+    const { name, options } = e.target;
+    const selectedValues = Array.from(options)
+      .filter(option => option.selected)
+      .map(option => Number(option.value)); // Превращаем в массив чисел (ID)
+
+    setProfile(prev => ({ ...prev, [name]: selectedValues }));
+  };
+
 const handleSave = async (e) => {
     e.preventDefault();
     try {
+      // Подготавливаем объект данных, который ожидает метод PATCH /profiles/me/
       const dataToSend = {
-        ...profile,
-        skills: profile.skills.split(',').map(s => s.trim()).filter(Boolean),
-        interests: profile.interests.split(',').map(i => i.trim()).filter(Boolean),
-        want_to_learn: profile.want_to_learn.split(',').map(w => w.trim()).filter(Boolean)
+        telegram_username: profile.telegram_username,
+        stage: profile.project_stage,
+        commitment: profile.employment,
+        location: profile.location,
+        bio: profile.bio,
+        // Отправляем только если строка не пустая, иначе null/undefined
+        portfolio_url: profile.portfolio_url.trim() || null, 
+        github_url: profile.github_url.trim() || null,
+        skills_have: profile.skills_have,
+        skills_want: profile.skills_want,
+        interests: profile.interests
       };
 
       await updateMyProfile(dataToSend);
       alert('Профиль успешно обновлен!');
       navigate('/feed');
     } catch (err) {
-      // ВЫВОДИМ ПОДРОБНУЮ ОШИБКУ
       console.error('Детали ошибки:', err.response?.data || err.message);
       alert('Ошибка: ' + JSON.stringify(err.response?.data || 'Проверьте консоль'));
     }
@@ -108,24 +140,32 @@ const handleSave = async (e) => {
         />
 
         <label>Стадия проекта:</label>
-        <input 
+        <select 
           className={styles.authInput} 
-          type="text" 
           name="project_stage" 
           value={profile.project_stage} 
-          onChange={handleChange} 
-          placeholder="Например: Есть идея, Прототип..."
-        />
+          onChange={handleChange}
+        >
+          <option value="">-- Выберите стадию --</option>
+          <option value="idea">Есть только идея</option>
+          <option value="prototype">Прототип / MVP</option>
+          <option value="traction">Есть пользователи / первые продажи</option>
+          <option value="business">Работающий бизнес</option>
+          <option value="looking">Пока просто ищу проект</option>
+        </select>
 
         <label>Занятость:</label>
-        <input 
+        <select 
           className={styles.authInput} 
-          type="text" 
           name="employment" 
           value={profile.employment} 
-          onChange={handleChange} 
-          placeholder="Например: Full-time, Part-time..."
-        />
+          onChange={handleChange}
+        >
+          <option value="">-- Выберите занятость --</option>
+          <option value="hobby">Хобби</option>
+          <option value="part_time">Part-time</option>
+          <option value="full_time">Full-time</option>
+        </select>
 
         <label>Локация (Город):</label>
         <input 
@@ -137,35 +177,72 @@ const handleSave = async (e) => {
           placeholder="Ваш город"
         />
 
-        <label>Какие навыки есть (перечислите через запятую):</label>
+        <label>О себе (Bio):</label>
         <textarea 
           className={styles.authInput} 
-          name="skills" 
-          value={profile.skills} 
+          name="bio" 
+          value={profile.bio} 
           onChange={handleChange} 
-          placeholder="Например: React, Python, Django, Figma"
-          rows={3}
+          placeholder="Расскажите о себе"
+          rows={2}
         />
 
-        <label>Какие навыки хотите изучить (через запятую):</label>
-        <textarea 
+        <label>Ссылка на портфолио:</label>
+        <input 
           className={styles.authInput} 
-          name="want_to_learn" 
-          value={profile.want_to_learn} 
+          type="text" 
+          name="portfolio_url" 
+          value={profile.portfolio_url} 
           onChange={handleChange} 
-          placeholder="Например: Go, Docker, Analytics"
-          rows={3}
+          placeholder="https://..."
         />
 
-        <label>Сферы бизнеса / Интересы (через запятую):</label>
-        <textarea 
+        <label>Ссылка на GitHub:</label>
+        <input 
+          className={styles.authInput} 
+          type="text" 
+          name="github_url" 
+          value={profile.github_url} 
+          onChange={handleChange} 
+          placeholder="https://github.com/..."
+        />
+
+        {/* Выпадающие списки (множественный выбор) */}
+        <label>Какие навыки есть (зажмите Ctrl/Cmd для выбора нескольких):</label>
+        <select 
+          className={styles.authInput} 
+          name="skills_have" 
+          multiple 
+          value={profile.skills_have} 
+          onChange={handleSelectChange}
+          style={{ height: '80px' }}
+        >
+          {skillsList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+
+        <label>Какие навыки хотите изучить:</label>
+        <select 
+          className={styles.authInput} 
+          name="skills_want" 
+          multiple 
+          value={profile.skills_want} 
+          onChange={handleSelectChange}
+          style={{ height: '80px' }}
+        >
+          {skillsList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+
+        <label>Сферы бизнеса (Интересы):</label>
+        <select 
           className={styles.authInput} 
           name="interests" 
+          multiple 
           value={profile.interests} 
-          onChange={handleChange} 
-          placeholder="Например: FinTech, EdTech, AI"
-          rows={3}
-        />
+          onChange={handleSelectChange}
+          style={{ height: '80px' }}
+        >
+          {interestsList.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+        </select>
 
         <button className={styles.authButton} type="submit">Сохранить</button>
       </form>
