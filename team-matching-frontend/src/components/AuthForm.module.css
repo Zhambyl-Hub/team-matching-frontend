@@ -134,3 +134,36 @@ h2 {
   flex-direction: column;
   gap: 10px;
 }
+/* Добавим этот класс для акцентной рамки мэтча */
+.matchCardBorder {
+  border: 2px solid #4CAF50 !important;
+}
+
+.telegramBox {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #f0fdf4;
+  border-radius: 12px;
+}
+
+.telegramText {
+  font-size: 18px;
+  font-weight: bold;
+  color: #166534;
+  margin: 5px 0 15px 0;
+}
+
+.telegramLinks {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.telegramLink {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.telegramLink:hover {
+  text-decoration: underline;
+}
